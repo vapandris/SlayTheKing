@@ -6,16 +6,33 @@ Rect :: rl.Rectangle
 Vec2 :: [2]f32
 Vec2i :: [2]i32
 
+// ============
 // Assets:
+// ============
+
 ASSETS_PATH :: "assets/"
 ROOK_PNG :: ASSETS_PATH + "rook.png"
 DUMMY_PNG :: ASSETS_PATH + "dummy.png"
 TILE_DARK_PNG :: ASSETS_PATH + "tile_dark.png"
 TILE_LIGHT_PNG :: ASSETS_PATH + "tile_light.png"
 
-GameState :: struct {
-	player_pos: Vec2,
 
+// ============
+// Game state:
+// ============
+tileCols  :: 8
+tileRows :: 8
+
+tileMapPos :: Vec2{0, 0} // TopLeft corner of the tile map
+tileSize :: Vec2{48, 48} // Size of each individual tile
+
+GameState :: struct {
+	// Game data:
+	playerPos: Vec2,
+	
+	// Game-Render data:
+
+	// Render data:
 	img_rook: rl.Texture2D,
 	img_dummy: rl.Texture2D,
 	img_lightTile: rl.Texture2D,
@@ -26,7 +43,7 @@ g_state: ^GameState
 
 init :: proc() {
 	g_state^ = GameState {
-		player_pos = {100, 200},
+		playerPos = {100, 200},
 
 		img_rook = rl.LoadTexture(ROOK_PNG),
 		img_dummy = rl.LoadTexture(DUMMY_PNG),
@@ -42,10 +59,10 @@ init :: proc() {
 
 update :: proc() {
 	dt := rl.GetFrameTime()
-	if rl.IsKeyDown(.S) do g_state.player_pos.y += 300 * dt
-	if rl.IsKeyDown(.W) do g_state.player_pos.y -= 300 * dt
-	if rl.IsKeyDown(.D) do g_state.player_pos.x += 300 * dt
-	if rl.IsKeyDown(.A) do g_state.player_pos.x -= 300 * dt
+	if rl.IsKeyDown(.S) do g_state.playerPos.y += 300 * dt
+	if rl.IsKeyDown(.W) do g_state.playerPos.y -= 300 * dt
+	if rl.IsKeyDown(.D) do g_state.playerPos.x += 300 * dt
+	if rl.IsKeyDown(.A) do g_state.playerPos.x -= 300 * dt
 }
 
 draw :: proc() {
@@ -53,11 +70,41 @@ draw :: proc() {
 	rl.ClearBackground(rl.BLACK)
 
 	rect := Rect {
-		g_state.player_pos.x,
-		g_state.player_pos.y,
+		g_state.playerPos.x,
+		g_state.playerPos.y,
 		100, 100,
 	}
-	//rl.DrawRectangleRec(rect, rl.GREEN)
+	
+
+	currentTilePos := tileMapPos
+	for row in 0..<tileRows {
+		currentTilePos.x = tileMapPos.x
+		for col in 0..<tileRows {
+			pairity := ((col + (row % 2)) % 2)
+			tileToDraw: ^rl.Texture2D
+
+			if pairity == 0 do tileToDraw = &g_state.img_lightTile
+			else do tileToDraw = &g_state.img_darkTile
+
+			drawDestination := rl.Rectangle{
+				x = currentTilePos.x,
+				y = currentTilePos.y,
+				width = tileSize.x,
+				height = tileSize.y,
+			}
+
+			rl.DrawTexturePro(
+				tileToDraw^,
+				{0, 0, 48, 48},
+				drawDestination,
+				{}, 0, rl.WHITE
+			)
+
+			currentTilePos.x += tileSize.x;
+		}
+		currentTilePos.y += tileSize.y
+	}
+
 	rl.DrawTextureEx(
 		g_state.img_rook,
 		{rect.x, rect.y},
