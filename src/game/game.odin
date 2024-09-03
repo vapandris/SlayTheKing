@@ -31,6 +31,7 @@ GameState :: struct {
     playerPos: Vec2,
     
     // Game-Render data:
+    camera: rl.Camera2D,
 
     // Render data:
     img_rook: rl.Texture2D,
@@ -49,7 +50,16 @@ init :: proc() {
         img_dummy = rl.LoadTexture(DUMMY_PNG),
         img_lightTile = rl.LoadTexture(TILE_LIGHT_PNG),
         img_darkTile = rl.LoadTexture(TILE_DARK_PNG),
+
+        camera = {
+            offset = Vec2{
+                cast(f32)rl.GetScreenWidth() / 2,
+                cast(f32)rl.GetScreenHeight() / 2,
+            },
+            zoom = 1,
+        }
     }
+    g_state.camera.target = g_state.playerPos
 
     if    g_state.img_rook.id <= 0 do panic("invalid path: " + ROOK_PNG)
     if    g_state.img_dummy.id <= 0 do panic("invalid path: " + DUMMY_PNG)
@@ -58,6 +68,14 @@ init :: proc() {
 }
 
 update :: proc() {
+    // Set the camera's target to the midle of the board
+    g_state.camera.target = Vec2{
+        (cast(f32)tileRows * tileSize.y) / 2,
+        (cast(f32)tileCols * tileSize.x) / 2,
+    }
+    // Set the zoom of the camera so it matches the height of the board with a bit of padding
+    g_state.camera.zoom = cast(f32)rl.GetScreenHeight() / (cast(f32)tileRows * tileSize.y)
+    g_state.camera.zoom *= 0.95
     dt := rl.GetFrameTime()
     if rl.IsKeyDown(.S) do g_state.playerPos.y += 300 * dt
     if rl.IsKeyDown(.W) do g_state.playerPos.y -= 300 * dt
@@ -67,7 +85,12 @@ update :: proc() {
 
 draw :: proc() {
     rl.BeginDrawing()
-    rl.ClearBackground(rl.BLACK)
+    defer rl.EndDrawing()
+
+    rl.ClearBackground(rl.Color{ 30, 30, 31, 255 })
+
+    rl.BeginMode2D(g_state.camera)
+    defer rl.EndMode2D()
 
     rect := Rect {
         g_state.playerPos.x,
@@ -112,6 +135,4 @@ draw :: proc() {
         rect.width / cast(f32)g_state.img_rook.width,
         rl.WHITE
     );
-
-    rl.EndDrawing()
 }
