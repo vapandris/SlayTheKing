@@ -51,15 +51,10 @@ init :: proc() {
         img_lightTile = rl.LoadTexture(TILE_LIGHT_PNG),
         img_darkTile = rl.LoadTexture(TILE_DARK_PNG),
 
-        camera = {
-            offset = Vec2{
-                cast(f32)rl.GetScreenWidth() / 2,
-                cast(f32)rl.GetScreenHeight() / 2,
-            },
-            zoom = 1,
-        }
+        camera = {}
     }
-    g_state.camera.target = g_state.playerPos
+    
+    camera_set()
 
     if    g_state.img_rook.id <= 0 do panic("invalid path: " + ROOK_PNG)
     if    g_state.img_dummy.id <= 0 do panic("invalid path: " + DUMMY_PNG)
@@ -68,14 +63,8 @@ init :: proc() {
 }
 
 update :: proc() {
-    // Set the camera's target to the midle of the board
-    g_state.camera.target = Vec2{
-        (cast(f32)tileRows * tileSize.y) / 2,
-        (cast(f32)tileCols * tileSize.x) / 2,
-    }
-    // Set the zoom of the camera so it matches the height of the board with a bit of padding
-    g_state.camera.zoom = cast(f32)rl.GetScreenHeight() / (cast(f32)tileRows * tileSize.y)
-    g_state.camera.zoom *= 0.95
+    if rl.IsWindowResized() do camera_set()
+
     dt := rl.GetFrameTime()
     if rl.IsKeyDown(.S) do g_state.playerPos.y += 300 * dt
     if rl.IsKeyDown(.W) do g_state.playerPos.y -= 300 * dt
@@ -135,4 +124,23 @@ draw :: proc() {
         rect.width / cast(f32)g_state.img_rook.width,
         rl.WHITE
     );
+}
+
+// Helper functions :)
+camera_set :: proc(midPoint: Vec2 = Vec2{
+    (tileMapPos.x + (cast(f32)tileCols * tileSize.x)) / 2,
+    (tileMapPos.y + (cast(f32)tileRows * tileSize.y)) / 2,
+}) {
+    // Set camera's origin to the midle of the window
+    g_state.camera.offset = Vec2{
+        cast(f32)rl.GetScreenWidth() / 2,
+        cast(f32)rl.GetScreenHeight() / 2,
+    }
+
+    // Set the camera's target to the midle of the board
+    g_state.camera.target = midPoint
+
+    // Set the zoom of the camera so it matches the height of the board with a bit of padding
+    g_state.camera.zoom = cast(f32)rl.GetScreenHeight() / (cast(f32)tileRows * tileSize.y)
+    g_state.camera.zoom *= 0.95
 }
