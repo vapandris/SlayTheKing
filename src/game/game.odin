@@ -24,11 +24,19 @@ tileCols  :: 8
 tileRows :: 8
 
 tileMapPos :: Vec2{0, 0} // TopLeft corner of the tile map
+
 tileSize :: Vec2{48, 48} // Size of each individual tile
+rookSize :: Vec2{48, 64} // Size of the rooks
+dummySize :: Vec2{16, 24} // Size of the player/dummy
+
+rookRadius :: 24.0
+dummyRadius :: (dummySize.x + dummySize.y) / 2
 
 GameState :: struct {
     // Game data:
-    playerPos: Vec2,
+    dummyPos: Vec2,
+    rook1Pos: Vec2,
+    rook2Pos: Vec2,
     
     // Game-Render data:
     camera: rl.Camera2D,
@@ -44,7 +52,9 @@ g_state: ^GameState
 
 init :: proc() {
     g_state^ = GameState {
-        playerPos = {100, 200},
+        dummyPos = {100, 200},
+        rook1Pos = tileMapPos + ({rookRadius, rookRadius} * 1.25),
+        rook2Pos = (tileMapPos + ({cast(f32)tileCols * tileSize.x, 0})) + ({-rookRadius, rookRadius} * 1.25),
 
         img_rook = rl.LoadTexture(ROOK_PNG),
         img_dummy = rl.LoadTexture(DUMMY_PNG),
@@ -66,10 +76,10 @@ update :: proc() {
     if rl.IsWindowResized() do camera_set()
 
     dt := rl.GetFrameTime()
-    if rl.IsKeyDown(.S) do g_state.playerPos.y += 300 * dt
-    if rl.IsKeyDown(.W) do g_state.playerPos.y -= 300 * dt
-    if rl.IsKeyDown(.D) do g_state.playerPos.x += 300 * dt
-    if rl.IsKeyDown(.A) do g_state.playerPos.x -= 300 * dt
+    if rl.IsKeyDown(.S) do g_state.dummyPos.y += 300 * dt
+    if rl.IsKeyDown(.W) do g_state.dummyPos.y -= 300 * dt
+    if rl.IsKeyDown(.D) do g_state.dummyPos.x += 300 * dt
+    if rl.IsKeyDown(.A) do g_state.dummyPos.x -= 300 * dt
 }
 
 draw :: proc() {
@@ -82,8 +92,8 @@ draw :: proc() {
     defer rl.EndMode2D()
 
     rect := Rect {
-        g_state.playerPos.x,
-        g_state.playerPos.y,
+        g_state.dummyPos.x,
+        g_state.dummyPos.y,
         100, 100,
     }
     
@@ -107,7 +117,7 @@ draw :: proc() {
 
             rl.DrawTexturePro(
                 tileToDraw^,
-                {0, 0, 48, 48},
+                {0, 0, tileSize.x, tileSize.y},
                 drawDestination,
                 {}, 0, rl.WHITE
             )
@@ -117,16 +127,36 @@ draw :: proc() {
         currentTilePos.y += tileSize.y
     }
 
-    rl.DrawTextureEx(
+    rl.DrawTexturePro(
         g_state.img_rook,
-        {rect.x, rect.y},
-        0,
-        rect.width / cast(f32)g_state.img_rook.width,
-        rl.WHITE
-    );
+        {0, 0, rookSize.x, rookSize.y},
+        {g_state.rook1Pos.x, g_state.rook1Pos.y,
+         rookSize.x, rookSize.y},
+        rookSize * {0.5 , 0.75},
+        0, rl.WHITE
+    )
+    
+    rl.DrawTexturePro(
+        g_state.img_rook,
+        {0, 0, rookSize.x, rookSize.y},
+        {g_state.rook2Pos.x, g_state.rook2Pos.y,
+         rookSize.x, rookSize.y},
+        rookSize * {0.5 , 0.75},
+        0, rl.WHITE
+    )
+
+    rl.DrawTexturePro(
+        g_state.img_dummy,
+        {0, 0, dummySize.x, dummySize.y},
+        {rect.x, rect.y, dummySize.x, dummySize.y},
+        rookSize * {0.5 , 0.75},
+        0, rl.WHITE
+    )
 }
 
+// ==================================
 // Helper functions :)
+// ==================================
 camera_set :: proc(midPoint: Vec2 = Vec2{
     (tileMapPos.x + (cast(f32)tileCols * tileSize.x)) / 2,
     (tileMapPos.y + (cast(f32)tileRows * tileSize.y)) / 2,
