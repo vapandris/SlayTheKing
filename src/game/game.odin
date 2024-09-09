@@ -39,6 +39,7 @@ Rook :: struct {
         SLIDE = 0, CHARGE, ATTACK
     },
     chargeCounter: f32, // from 0 to 1.5 seconds, the rooks will charge up before attacking the player
+    attackDir: Vec2, // Saved direction of where the rook is charging
 }
 Rook_Acceleration :: 0.05
 Rook_MaxSpeed :: 1.5
@@ -86,7 +87,7 @@ init :: proc() {
     if g_state.img_lightTile.id <= 0 do panic("invalid path: " + TILE_LIGHT_PNG)
     if g_state.img_darkTile.id <= 0 do panic("invalid path: " + TILE_DARK_PNG)
 }
-import "core:fmt"
+//import "core:fmt"
 
 update :: proc() {
     if rl.IsWindowResized() do camera_set()
@@ -103,7 +104,7 @@ update :: proc() {
     switch g_state.rook1.state {
         case .SLIDE, .CHARGE: {
             acceleration := Rook_Acceleration * FPS;
-            deceleration := (Rook_Acceleration / 2) * FPS;
+            deceleration := (Rook_Acceleration / 2) * FPS
             direction := Vec2{0, g_state.dummyPos.y - g_state.rook1.pos.y}
             speed := Vec2_GetLength(g_state.rook1.vel)
             
@@ -118,7 +119,6 @@ update :: proc() {
             }
 
             decelerationVec := Vec2_GetScaled(g_state.rook1.vel, -1 * deceleration)
-
             g_state.rook1.vel += direction * (acceleration * dt)
             g_state.rook1.vel += decelerationVec * dt
 
@@ -136,12 +136,36 @@ update :: proc() {
             if g_state.rook1.chargeCounter >= Rook_ChargeTime do g_state.rook1.state = .ATTACK
         }
         case .ATTACK: {
+            chargeMultiplyer: f32 = 3
 
-            fmt.print("!!!!!!\n")
-            fmt.print("ATTACK\n")
-            fmt.print("!!!!!!\n")
             g_state.rook1.chargeCounter = 0
-            g_state.rook1.state = .SLIDE
+            acceleration := Rook_Acceleration * chargeMultiplyer * FPS
+            deceleration := (Rook_Acceleration / chargeMultiplyer) * FPS
+            if g_state.rook1.attackDir == {} {
+                g_state.rook1.attackDir = Vec2{g_state.dummyPos.x - g_state.rook1.pos.x, 0}
+            }
+
+            decelerationVec := Vec2_GetScaled(g_state.rook1.vel, -1 * deceleration)
+            g_state.rook1.vel += g_state.rook1.attackDir * (acceleration * dt)
+            g_state.rook1.vel += decelerationVec * dt
+
+            speed := Vec2_GetLength(g_state.rook1.vel)
+            if chargeMultiplyer*Rook_MaxSpeed < speed {
+                Vec2_Scale(&g_state.rook1.vel, chargeMultiplyer*Rook_MaxSpeed)
+            }
+
+            g_state.rook1.pos += g_state.rook1.vel
+            
+            padding :f32 = 0.9
+            leftStopPosX  := tileMapPos.x + (rookRadius * padding)
+            rightStopPosX := tileMapPos.x + (cast(f32)tileCols * tileSize.x) - (rookRadius*padding)
+            if  g_state.rook1.pos.x <= leftStopPosX ||
+                rightStopPosX <= g_state.rook1.pos.x {
+
+                g_state.rook1.vel = {}
+                g_state.rook1.attackDir = {}
+                g_state.rook1.state = .SLIDE
+            }
         }
     }
 
@@ -198,12 +222,13 @@ draw :: proc() {
     color := rl.WHITE
     counter := g_state.rook1.chargeCounter
     if  (0 < counter &&
-        counter < Rook_ChargeTime * 0.3) ||
-        (Rook_ChargeTime * 0.6 < counter &&
-        counter < Rook_ChargeTime * 0.9)
+        counter < Rook_ChargeTime * 0.333) ||
+        (Rook_ChargeTime * 0.666 < counter &&
+        counter < Rook_ChargeTime)
     {
         color = rl.RED
     }
+    
     
 
     rl.DrawTexturePro(
