@@ -94,10 +94,10 @@ update :: proc() {
 
     FPS := cast(f32)rl.GetFPS()
     dt := rl.GetFrameTime()
-    if rl.IsKeyDown(.S) do g_state.dummyPos.y += 100 * dt
-    if rl.IsKeyDown(.W) do g_state.dummyPos.y -= 100 * dt
-    if rl.IsKeyDown(.D) do g_state.dummyPos.x += 100 * dt
-    if rl.IsKeyDown(.A) do g_state.dummyPos.x -= 100 * dt
+    if rl.IsKeyDown(.S) do g_state.dummyPos.y += 80 * dt
+    if rl.IsKeyDown(.W) do g_state.dummyPos.y -= 80 * dt
+    if rl.IsKeyDown(.D) do g_state.dummyPos.x += 80 * dt
+    if rl.IsKeyDown(.A) do g_state.dummyPos.x -= 80 * dt
 
     // Logic for rook 1:
     // Is more agressive. Prefers to stay on the most left/right row
@@ -136,7 +136,7 @@ update :: proc() {
             if g_state.rook1.chargeCounter >= Rook_ChargeTime do g_state.rook1.state = .ATTACK
         }
         case .ATTACK: {
-            chargeMultiplyer: f32 = 3
+            chargeMultiplyer: f32 = 5
 
             g_state.rook1.chargeCounter = 0
             acceleration := Rook_Acceleration * chargeMultiplyer * FPS
