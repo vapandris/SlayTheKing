@@ -171,6 +171,74 @@ update :: proc() {
 
     // Logic for rook 2:
     // Defensive. Prefers to stay on the top column, protecting the exit
+    switch g_state.rook2.state {
+        case .SLIDE, .CHARGE: {
+            acceleration := Rook_Acceleration * FPS;
+            deceleration := (Rook_Acceleration / 2) * FPS
+            direction := Vec2{g_state.dummyPos.x - g_state.rook2.pos.x, 0}
+            speed := Vec2_GetLength(g_state.rook2.vel)
+            
+            if Vec2_GetLength(direction) < (5 + 25*speed) {
+                direction = {}
+                g_state.rook2.state = .CHARGE
+                g_state.rook2.chargeCounter += dt
+            } else {
+                g_state.rook2.state = .SLIDE
+                g_state.rook2.chargeCounter -= dt
+                if g_state.rook2.chargeCounter < 0 do g_state.rook2.chargeCounter = 0
+            }
+
+            decelerationVec := Vec2_GetScaled(g_state.rook2.vel, -1 * deceleration)
+            g_state.rook2.vel += direction * (acceleration * dt)
+            g_state.rook2.vel += decelerationVec * dt
+
+            speed = Vec2_GetLength(g_state.rook2.vel)
+            if Rook_MaxSpeed < speed {
+                Vec2_Scale(&g_state.rook2.vel, Rook_MaxSpeed)
+            }
+
+            g_state.rook2.pos += g_state.rook2.vel
+
+            if speed < 0.5 {
+                g_state.rook2.vel = {}
+            }
+
+            if g_state.rook2.chargeCounter >= Rook_ChargeTime do g_state.rook2.state = .ATTACK
+        }
+        case .ATTACK: {
+            chargeMultiplyer: f32 = 5
+
+            g_state.rook2.chargeCounter = 0
+            acceleration := Rook_Acceleration * chargeMultiplyer * FPS
+            deceleration := (Rook_Acceleration / chargeMultiplyer) * FPS
+            if g_state.rook2.attackDir == {} {
+                g_state.rook2.attackDir = Vec2{0, g_state.dummyPos.y - g_state.rook2.pos.y}
+            }
+
+            decelerationVec := Vec2_GetScaled(g_state.rook2.vel, -1 * deceleration)
+            g_state.rook2.vel += g_state.rook2.attackDir * (acceleration * dt)
+            g_state.rook2.vel += decelerationVec * dt
+
+            speed := Vec2_GetLength(g_state.rook2.vel)
+            if chargeMultiplyer*Rook_MaxSpeed < speed {
+                Vec2_Scale(&g_state.rook2.vel, chargeMultiplyer*Rook_MaxSpeed)
+            }
+
+            g_state.rook2.pos += g_state.rook2.vel
+            
+            paddingTop: f32 = 1.25
+            paddingBot: f32 = 0.7
+            topStopPosY  := tileMapPos.y + (rookRadius * paddingTop)
+            botStopPosY := tileMapPos.y + (cast(f32)tileRows * tileSize.y) - (rookRadius*paddingBot)
+            if  g_state.rook2.pos.y <= topStopPosY ||
+                botStopPosY <= g_state.rook2.pos.y {
+
+                g_state.rook2.vel = {}
+                g_state.rook2.attackDir = {}
+                g_state.rook2.state = .SLIDE
+            }
+        }
+    }
     
 }
 
@@ -219,36 +287,26 @@ draw :: proc() {
         currentTilePos.y += tileSize.y
     }
 
-    color := rl.WHITE
+    rook1_color := rl.WHITE
     counter := g_state.rook1.chargeCounter
     if  (0 < counter &&
         counter < Rook_ChargeTime * 0.333) ||
         (Rook_ChargeTime * 0.666 < counter &&
         counter < Rook_ChargeTime)
     {
-        color = rl.RED
+        rook1_color = rl.RED
+    }
+
+    rook2_color := rl.WHITE
+    counter = g_state.rook2.chargeCounter
+    if  (0 < counter &&
+        counter < Rook_ChargeTime * 0.333) ||
+        (Rook_ChargeTime * 0.666 < counter &&
+        counter < Rook_ChargeTime)
+    {
+        rook2_color = rl.RED
     }
     
-    
-
-    rl.DrawTexturePro(
-        g_state.img_rook,
-        {0, 0, rookSize.x, rookSize.y},
-        {g_state.rook1.pos.x, g_state.rook1.pos.y,
-         rookSize.x, rookSize.y},
-        rookSize * {0.5 , 0.75},
-        0, color
-    )
-    
-    rl.DrawTexturePro(
-        g_state.img_rook,
-        {0, 0, rookSize.x, rookSize.y},
-        {g_state.rook2.pos.x, g_state.rook2.pos.y,
-         rookSize.x, rookSize.y},
-        rookSize * {0.5 , 0.75},
-        0, rl.WHITE
-    )
-
     rl.DrawTexturePro(
         g_state.img_dummy,
         {0, 0, dummySize.x, dummySize.y},
@@ -257,7 +315,26 @@ draw :: proc() {
         0, rl.WHITE
     )
 
+    rl.DrawTexturePro(
+        g_state.img_rook,
+        {0, 0, rookSize.x, rookSize.y},
+        {g_state.rook1.pos.x, g_state.rook1.pos.y,
+         rookSize.x, rookSize.y},
+        rookSize * {0.5 , 0.75},
+        0, rook1_color
+    )
+    
+    rl.DrawTexturePro(
+        g_state.img_rook,
+        {0, 0, rookSize.x, rookSize.y},
+        {g_state.rook2.pos.x, g_state.rook2.pos.y,
+         rookSize.x, rookSize.y},
+        rookSize * {0.5 , 0.75},
+        0, rook2_color
+    )
+
     // debug draw:
+    /*
     rl.DrawCircle(
         cast(i32)g_state.dummyPos.x,
         cast(i32)g_state.dummyPos.y,
@@ -269,6 +346,7 @@ draw :: proc() {
         cast(i32)g_state.rook1.pos.y,
         15, rl.Color{ 253, 10, 0, 55 }
     )
+    */
 }
 
 // ==================================
