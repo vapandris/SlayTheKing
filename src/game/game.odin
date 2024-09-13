@@ -44,7 +44,8 @@ Rook :: struct {
 Rook_Acceleration :: 0.05
 Rook_MaxSpeed :: 1.5
 
-Rook_ChargeTime :: 1.5
+Rook1_ChargeTime :: 1.5
+Rook2_ChargeTime :: 2.5
 
 GameState :: struct {
     // Game data:
@@ -133,7 +134,7 @@ update :: proc() {
                 g_state.rook1.vel = {}
             }
 
-            if g_state.rook1.chargeCounter >= Rook_ChargeTime do g_state.rook1.state = .ATTACK
+            if g_state.rook1.chargeCounter >= Rook1_ChargeTime do g_state.rook1.state = .ATTACK
         }
         case .ATTACK: {
             chargeMultiplyer: f32 = 5
@@ -173,7 +174,7 @@ update :: proc() {
     // Defensive. Prefers to stay on the top column, protecting the exit
     switch g_state.rook2.state {
         case .SLIDE, .CHARGE: {
-            acceleration := Rook_Acceleration * FPS;
+            acceleration := Rook_Acceleration * 1.5 * FPS;
             deceleration := (Rook_Acceleration / 2) * FPS
             direction := Vec2{g_state.dummyPos.x - g_state.rook2.pos.x, 0}
             speed := Vec2_GetLength(g_state.rook2.vel)
@@ -203,7 +204,7 @@ update :: proc() {
                 g_state.rook2.vel = {}
             }
 
-            if g_state.rook2.chargeCounter >= Rook_ChargeTime do g_state.rook2.state = .ATTACK
+            if g_state.rook2.chargeCounter >= Rook2_ChargeTime do g_state.rook2.state = .ATTACK
         }
         case .ATTACK: {
             chargeMultiplyer: f32 = 5
@@ -230,8 +231,13 @@ update :: proc() {
             paddingBot: f32 = 0.7
             topStopPosY  := tileMapPos.y + (rookRadius * paddingTop)
             botStopPosY := tileMapPos.y + (cast(f32)tileRows * tileSize.y) - (rookRadius*paddingBot)
-            if  g_state.rook2.pos.y <= topStopPosY ||
-                botStopPosY <= g_state.rook2.pos.y {
+            if botStopPosY <= g_state.rook2.pos.y {
+                g_state.rook2.vel = {}
+                g_state.rook2.attackDir = {}
+                // stay in ATTACK state to go back to defending
+            }
+
+            if  g_state.rook2.pos.y <= topStopPosY {
 
                 g_state.rook2.vel = {}
                 g_state.rook2.attackDir = {}
@@ -290,9 +296,9 @@ draw :: proc() {
     rook1_color := rl.WHITE
     counter := g_state.rook1.chargeCounter
     if  (0 < counter &&
-        counter < Rook_ChargeTime * 0.333) ||
-        (Rook_ChargeTime * 0.666 < counter &&
-        counter < Rook_ChargeTime)
+        counter < Rook1_ChargeTime * 0.333) ||
+        (Rook1_ChargeTime * 0.666 < counter &&
+        counter < Rook1_ChargeTime)
     {
         rook1_color = rl.RED
     }
@@ -300,9 +306,9 @@ draw :: proc() {
     rook2_color := rl.WHITE
     counter = g_state.rook2.chargeCounter
     if  (0 < counter &&
-        counter < Rook_ChargeTime * 0.333) ||
-        (Rook_ChargeTime * 0.666 < counter &&
-        counter < Rook_ChargeTime)
+        counter < Rook2_ChargeTime * 0.333) ||
+        (Rook2_ChargeTime * 0.666 < counter &&
+        counter < Rook2_ChargeTime)
     {
         rook2_color = rl.RED
     }
