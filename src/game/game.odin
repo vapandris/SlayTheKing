@@ -36,7 +36,8 @@ Rook :: struct {
     pos: Vec2,
     vel: Vec2,
     state: enum  {
-        SLIDE = 0, CHARGE, ATTACK
+        SLIDE = 0, CHARGE, ATTACK, DEFEND,
+        SIDEATTACK, COORDATTACK_V, COORDATTACK_H,
     },
     chargeCounter: f32, // from 0 to 1.5 seconds, the rooks will charge up before attacking the player
     attackDir: Vec2, // Saved direction of where the rook is charging
@@ -102,7 +103,7 @@ update :: proc() {
 
     // Logic for rook 1:
     // Is more agressive. Prefers to stay on the most left/right row
-    switch g_state.rook1.state {
+    #partial switch g_state.rook1.state {
         case .SLIDE, .CHARGE: {
             acceleration := Rook_Acceleration * FPS;
             deceleration := (Rook_Acceleration / 2) * FPS
@@ -128,7 +129,15 @@ update :: proc() {
                 Vec2_Scale(&g_state.rook1.vel, Rook_MaxSpeed)
             }
 
+            
             g_state.rook1.pos += g_state.rook1.vel
+            limitTop:f32 = tileMapPos.y + rookRadius*2
+            limitBot:f32 = tileMapPos.y + (cast(f32)tileRows*tileSize.y) - rookRadius*2
+            distanceFromTop:f32 = g_state.rook1.pos.y - limitTop
+            distanceFromBot:f32 = limitBot - g_state.rook1.pos.y
+            
+            if distanceFromTop < 0 do g_state.rook1.pos.y -= distanceFromTop
+            else if distanceFromBot < 0 do g_state.rook1.pos.y += distanceFromBot
 
             if speed < 0.5 {
                 g_state.rook1.vel = {}
@@ -168,11 +177,12 @@ update :: proc() {
                 g_state.rook1.state = .SLIDE
             }
         }
+        case: {}
     }
 
     // Logic for rook 2:
     // Defensive. Prefers to stay on the top column, protecting the exit
-    switch g_state.rook2.state {
+    #partial switch g_state.rook2.state {
         case .SLIDE, .CHARGE: {
             acceleration := Rook_Acceleration * 1.5 * FPS;
             deceleration := (Rook_Acceleration / 2) * FPS
@@ -199,6 +209,13 @@ update :: proc() {
             }
 
             g_state.rook2.pos += g_state.rook2.vel
+            limitLeft:f32 = tileMapPos.x + rookRadius*2
+            limitRight:f32 = tileMapPos.x + (cast(f32)tileCols*tileSize.x) - rookRadius*2
+            distanceFromLeft:f32 = g_state.rook2.pos.x - limitLeft
+            distanceFromRight:f32 = limitRight - g_state.rook2.pos.x
+            
+            if distanceFromLeft < 0 do g_state.rook2.pos.x -= distanceFromLeft
+            else if distanceFromRight < 0 do g_state.rook2.pos.x += distanceFromRight
 
             if speed < 0.5 {
                 g_state.rook2.vel = {}
@@ -244,6 +261,7 @@ update :: proc() {
                 g_state.rook2.state = .SLIDE
             }
         }
+        case: {}
     }
     
 }
