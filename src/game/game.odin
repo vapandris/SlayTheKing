@@ -107,8 +107,10 @@ update :: proc() {
     case .SLIDE, .CHARGE: {
       acceleration := Rook_Acceleration * FPS;
       deceleration := (Rook_Acceleration / 2) * FPS
-      direction := Vec2{0, g_state.dummyPos.y - g_state.rook1.pos.y}
+      direction := g_state.dummyPos.y - g_state.rook1.pos
       speed := Vec2_GetLength(g_state.rook1.vel)
+
+      direction.x = 0
       
       if Vec2_GetLength(direction) < (5 + 25*speed) {
         direction = {}
@@ -128,6 +130,8 @@ update :: proc() {
       if Rook_MaxSpeed < speed {
         Vec2_Scale(&g_state.rook1.vel, Rook_MaxSpeed)
       }
+
+      
 
       
       g_state.rook1.pos += g_state.rook1.vel
