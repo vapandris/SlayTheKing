@@ -26,27 +26,9 @@ tileRows :: 8
 tileMapPos :: Vec2{0, 0} // TopLeft corner of the tile map
 
 tileSize :: Vec2{48, 48} // Size of each individual tile
-rookSize :: Vec2{48, 64} // Size of the rooks
 dummySize :: Vec2{16, 24} // Size of the player/dummy
 
-rookRadius :: 24.0
 dummyRadius :: (dummySize.x + dummySize.y) / 2
-
-Rook :: struct {
-  pos: Vec2,
-  vel: Vec2,
-  state: enum  {
-    SLIDE = 0, CHARGE, ATTACK, DEFEND,
-    SIDEATTACK, COORDATTACK_V, COORDATTACK_H,
-  },
-  chargeCounter: f32, // from 0 to 1.5 seconds, the rooks will charge up before attacking the player
-  attackDir: Vec2, // Saved direction of where the rook is charging
-}
-Rook_Acceleration :: 0.05
-Rook_MaxSpeed :: 1.5
-
-Rook1_ChargeTime :: 1.5
-Rook2_ChargeTime :: 2.5
 
 GameState :: struct {
   // Game data:
@@ -103,14 +85,18 @@ update :: proc() {
 
   // Logic for rook 1:
   // Is more agressive. Prefers to stay on the most left/right row
+  VRook_Update(&g_state.rook1, FPS, dt, Rook1_ChargeTime)
+  if false{
   #partial switch g_state.rook1.state {
     case .SLIDE, .CHARGE: {
       acceleration := Rook_Acceleration * FPS;
       deceleration := (Rook_Acceleration / 2) * FPS
-      direction := g_state.dummyPos.y - g_state.rook1.pos
+      direction := Vec2{0, g_state.dummyPos.y - g_state.rook1.pos.y}
       speed := Vec2_GetLength(g_state.rook1.vel)
 
-      direction.x = 0
+      if abs(g_state.dummyPos.x - g_state.rook1.pos.x) < tileSize.x/2 {
+        //fmt.println("oii! not cool!");
+      } 
       
       if Vec2_GetLength(direction) < (5 + 25*speed) {
         direction = {}
@@ -130,9 +116,6 @@ update :: proc() {
       if Rook_MaxSpeed < speed {
         Vec2_Scale(&g_state.rook1.vel, Rook_MaxSpeed)
       }
-
-      
-
       
       g_state.rook1.pos += g_state.rook1.vel
       limitTop:f32 = tileMapPos.y + rookRadius*2
@@ -182,7 +165,7 @@ update :: proc() {
       }
     }
     case: {}
-  }
+  }}
 
   // Logic for rook 2:
   // Defensive. Prefers to stay on the top column, protecting the exit
